@@ -1,0 +1,4 @@
+rootProject.name = 'message.event.full'
+
+include ':message-core', ':message-app1', ':message-app2'
+
