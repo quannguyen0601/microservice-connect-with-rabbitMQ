@@ -6,6 +6,7 @@
 package vn.quan.nguyen.message.core.configuration.client;
 
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,31 +15,22 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class SumShareConfiguration {
-    public static final String REPLY_SUM_QUEUE = "REPLY_SUM_NAME";
+    public static final String REPLY_SUM_QUEUE = "REPLY_SUM_QUEUE";
     public static final String REQUEST_SUM_QUEUE = "REQUEST_SUM_QUEUE";
 
     @Bean
     public Queue request() {
-        return new Queue(REQUEST_SUM_QUEUE);
+        return QueueBuilder.durable(REQUEST_SUM_QUEUE)
+                .withArgument("x-dead-letter-exchange", DeadLetterQueueConfiguration.X_DEAD_LETTER_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", DeadLetterQueueConfiguration.X_DEAD_LETTER_ROUTING_KEY)
+                .build();
     }
 
     @Bean
     public Queue replies() {
-        return new Queue(REPLY_SUM_QUEUE);
+        return QueueBuilder.durable(REPLY_SUM_QUEUE)
+                .withArgument("x-dead-letter-exchange", DeadLetterQueueConfiguration.X_DEAD_LETTER_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", DeadLetterQueueConfiguration.X_DEAD_LETTER_ROUTING_KEY)
+                .build();
     }
-
-//
-//
-//    @Bean(value = "rabbitSumTemplate")
-//    public RabbitTemplate rabbitSumTemplate(ConnectionFactory connectionFactory,
-//                                            Jackson2JsonMessageConverter messageConverter) {
-//        RabbitTemplate template = new RabbitTemplate(connectionFactory);
-//        template.setExchange("test_exchange");
-//        template.setRoutingKey("greeting");
-//        template.setReplyAddress("reply_exchange"+"/"+REPLY_SUM_QUEUE);
-//        template.setMessageConverter(messageConverter);
-//        template.setReplyTimeout(5000);
-//        return template;
-//    }
-
 }

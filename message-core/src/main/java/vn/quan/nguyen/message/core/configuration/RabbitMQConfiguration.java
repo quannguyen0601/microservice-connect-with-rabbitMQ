@@ -5,17 +5,29 @@
  */
 package vn.quan.nguyen.message.core.configuration;
 
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.rabbit.listener.RabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.support.converter.*;
+import org.springframework.amqp.utils.SerializationUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.handler.annotation.support.DefaultMessageHandlerMethodFactory;
+import org.springframework.retry.backoff.FixedBackOffPolicy;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.util.ObjectUtils;
 import vn.quan.nguyen.message.core.constant.RabbitConstant;
 
+/***
+ * Stackoverflow @link[https://stackoverflow.com/questions/29592543/how-to-configure-and-receiveandconvert-json-payload-into-domain-object-in-spring]
+ */
 
 
 /**
@@ -23,9 +35,6 @@ import vn.quan.nguyen.message.core.constant.RabbitConstant;
  */
 @Configuration
 public class RabbitMQConfiguration {
-//    static final String topicExchangeName = "spring-boot-exchange";
-//
-//    static final String queueName = "spring-boot";
 
     @Bean
     Queue queue() {
@@ -42,36 +51,45 @@ public class RabbitMQConfiguration {
         return BindingBuilder.bind(queue).to(exchange).with(RabbitConstant.ROUTING_KEY_1);
     }
 
-//    @Bean
-//    SimpleMessageListenerContainer container(ConnectionFactory connectionFactory,
-//                                             MessageListenerAdapter listenerAdapter) {
-//        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
-//        container.setConnectionFactory(connectionFactory);
-//        container.setQueueNames(RabbitConstant.QUEUE_NAME);
-//        container.setMessageListener(listenerAdapter);
-//        return container;
-//    }
+    @Bean
+    ObjectMapper getObjectMapper(){
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        return objectMapper;
+    }
 
     @Bean
     public RabbitTemplate amqpTemplate(ConnectionFactory connectionFactory) {
         final RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(messageConverter());
+        rabbitTemplate.setMessageConverter(smartMessageConverter());
         return rabbitTemplate;
     }
 
+
+
 //    @Bean
-//    MessageListenerAdapter listenerAdapter(Receiver receiver) {
-//        return new MessageListenerAdapter(receiver, "receiveMessage");
+//    public MessageConverter jsonMessageConverter(ObjectMapper objectMapper) {
+//        return new Jackson2JsonMessageConverter(objectMapper);
 //    }
 
     @Bean
-    public Jackson2JsonMessageConverter messageConverter() {
-        return new Jackson2JsonMessageConverter();
+    public MessageConverter smartMessageConverter() {
+        return new SmartMessageConverter() {
+            @Override
+            public Object fromMessage(Message message, Object conversionHint) throws MessageConversionException {
+                return SerializationUtils.deserialize(message.getBody());
+            }
+
+            @Override
+            public Message toMessage(Object object, MessageProperties messageProperties) throws MessageConversionException {
+                Message message = new Message(SerializationUtils.serialize(object), messageProperties);
+                return message;
+            }
+
+            @Override
+            public Object fromMessage(Message message) throws MessageConversionException {
+                return SerializationUtils.deserialize(message.getBody());
+            }
+        };
     }
-
-//    @Bean
-//    public MessageConverter jsonMessageConverter() {
-//        return new Jackson2JsonMessageConverter();
-//    }
-
 }

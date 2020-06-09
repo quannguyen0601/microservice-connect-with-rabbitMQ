@@ -6,10 +6,20 @@
 package vn.quan.nguyen.message.app2.client;
 
 import lombok.extern.log4j.Log4j2;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import vn.quan.nguyen.message.core.entity.DemoInput;
+import vn.quan.nguyen.message.core.entity.SumRequest;
+import vn.quan.nguyen.message.core.entity.SumResponse;
 
+import javax.validation.constraints.NotNull;
+
+import java.util.Date;
+
+import static vn.quan.nguyen.message.core.configuration.client.DemoObjectConfiguration.COMPLEX_REQUEST_QUEUE;
 import static vn.quan.nguyen.message.core.configuration.client.SumShareConfiguration.REPLY_SUM_QUEUE;
 import static vn.quan.nguyen.message.core.configuration.client.SumShareConfiguration.REQUEST_SUM_QUEUE;
 
@@ -22,9 +32,26 @@ public class SumService {
 
     @RabbitListener(queues = {REQUEST_SUM_QUEUE})
     @SendTo(value = {REPLY_SUM_QUEUE})
-    public String handleSum(String name) {
-        log.info("ReceiveRequest {}", name);
-        return "Hello " +name;
+    @Transactional
+    public SumResponse handleSum(SumRequest request) {
+        log.info("ReceiveRequest {}", request.toString());
+
+        if(request.getB() > 20){
+            throw new AmqpRejectAndDontRequeueException("B element is bigger than 20");
+        }
+
+        return SumResponse.builder()
+                            .sum(request.getA()+request.getB())
+                            .result(new Date())
+                            .build();
+    }
+
+    @RabbitListener(queues = {COMPLEX_REQUEST_QUEUE})
+    public void handleComplex(DemoInput input) {
+        log.info("Get complex object {}", input.toString());
+        if(input.getData().equals("quan-nguyen2")){
+            throw new AmqpRejectAndDontRequeueException("Error name");
+        }
     }
 
 //    @Bean(value = "sumServiceReply")

@@ -54,5 +54,4 @@ public class BroadcastConfiguration {
     public Binding broadcastBiding3(){
         return BindingBuilder.bind(broadCastQueue3()).to(fanoutExchange());
     }
-
 }
