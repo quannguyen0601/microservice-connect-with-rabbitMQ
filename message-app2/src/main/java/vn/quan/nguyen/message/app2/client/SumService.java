@@ -8,20 +8,15 @@ package vn.quan.nguyen.message.app2.client;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.quan.nguyen.message.core.entity.DemoInput;
-import vn.quan.nguyen.message.core.entity.SumRequest;
-import vn.quan.nguyen.message.core.entity.SumResponse;
-
-import javax.validation.constraints.NotNull;
+import vn.quan.nguyen.message.core.entity.*;
 
 import java.util.Date;
 
+import static vn.quan.nguyen.message.core.configuration.client.CalculationShareConfiguration.REQUEST_MINUS_QUEUE;
 import static vn.quan.nguyen.message.core.configuration.client.DemoObjectConfiguration.COMPLEX_REQUEST_QUEUE;
-import static vn.quan.nguyen.message.core.configuration.client.SumShareConfiguration.REPLY_SUM_QUEUE;
-import static vn.quan.nguyen.message.core.configuration.client.SumShareConfiguration.REQUEST_SUM_QUEUE;
+import static vn.quan.nguyen.message.core.configuration.client.CalculationShareConfiguration.REQUEST_SUM_QUEUE;
 
 /**
  * App1Client.java
@@ -31,19 +26,31 @@ import static vn.quan.nguyen.message.core.configuration.client.SumShareConfigura
 public class SumService {
 
     @RabbitListener(queues = {REQUEST_SUM_QUEUE})
-    @SendTo(value = {REPLY_SUM_QUEUE})
+//    @SendTo(value = {REPLY_SUM_QUEUE})
     @Transactional
     public SumResponse handleSum(SumRequest request) {
         log.info("ReceiveRequest {}", request.toString());
 
-        if(request.getB() > 20){
-            throw new AmqpRejectAndDontRequeueException("B element is bigger than 20");
-        }
+//        if(request.getB() > 20){
+//            throw new AmqpRejectAndDontRequeueException("B element is bigger than 20");
+//        }
 
         return SumResponse.builder()
                             .sum(request.getA()+request.getB())
                             .result(new Date())
                             .build();
+    }
+
+    @RabbitListener(queues = {REQUEST_MINUS_QUEUE})
+//    @SendTo(value = {REPLY_SUM_QUEUE})
+    @Transactional
+    public MinusResponse handleSum(MinusRequest request) {
+        log.info("ReceiveMinusRequest {}", request.toString());
+
+        return MinusResponse.builder()
+                .minusResult(request.getNumberA() - request.getNumberB())
+                .data(new Date())
+                .build();
     }
 
     @RabbitListener(queues = {COMPLEX_REQUEST_QUEUE})

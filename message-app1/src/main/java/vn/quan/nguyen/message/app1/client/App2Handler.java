@@ -5,10 +5,7 @@
  */
 package vn.quan.nguyen.message.app1.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageBuilder;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -27,9 +24,8 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Date;
 
+import static vn.quan.nguyen.message.core.configuration.client.CalculationShareConfiguration.*;
 import static vn.quan.nguyen.message.core.configuration.client.DemoObjectConfiguration.COMPLEX_EXCHANGE;
-import static vn.quan.nguyen.message.core.configuration.client.SumShareConfiguration.REPLY_SUM_QUEUE;
-import static vn.quan.nguyen.message.core.configuration.client.SumShareConfiguration.REQUEST_SUM_QUEUE;
 
 /**
  * App2Client.java
@@ -47,9 +43,16 @@ public class App2Handler {
 
     @GetMapping("/request-response")
     @Transactional
-    public SumResponse sendMessage(@RequestParam("a") Long a, @RequestParam("b") Long b ) throws IOException {
+    public SumResponse sendSumMessage(@RequestParam("a") Long a, @RequestParam("b") Long b ) throws IOException {
         SumRequest request = SumRequest.builder().a(a).b(b).build();
-        return sumRabbitTemplate.convertSendAndReceiveAsType(REQUEST_SUM_QUEUE,request, ParameterizedTypeReference.forType(SumResponse.class));
+        return sumRabbitTemplate.convertSendAndReceiveAsType(CALCULATION_EXCHANGE,CALCULATION_ROUTING_KEY+"sum",request, ParameterizedTypeReference.forType(SumResponse.class));
+    }
+
+    @GetMapping("/request-response2")
+    @Transactional
+    public MinusResponse sendMinusMessage(@RequestParam("a") Long a, @RequestParam("b") Long b ) throws IOException {
+        MinusRequest request = MinusRequest.builder().numberA(a).numberB(b).build();
+        return sumRabbitTemplate.convertSendAndReceiveAsType(CALCULATION_EXCHANGE,CALCULATION_ROUTING_KEY+"minus",request, ParameterizedTypeReference.forType(MinusResponse.class));
     }
 
     @GetMapping("/broadcast")
